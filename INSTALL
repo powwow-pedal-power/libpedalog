@@ -1,0 +1,19 @@
+How to install
+--------------
+
+libpedalog requires libusb and its headers to be installed.
+It also requires cmake to be installed.
+
+To install:
+
+1) Go into libpedalog directory
+2) cmake .
+
+As root:
+3) make install
+
+This has been tested on Linux and Windows (using MinGW).
+
+On Windows, the libusb-win32 driver must be installed to used this library: http://www.libusb.org/wiki/libusb-win32
+
+Any problems please report on GitHub: https://github.com/greenlynx/libpedalog/issues
