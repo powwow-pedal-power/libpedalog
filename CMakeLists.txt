@@ -1,0 +1,29 @@
+cmake_minimum_required (VERSION 2.6)
+project (libpedalog)
+
+add_library(pedalog SHARED src/pedalog.c src/pedalog.h)
+target_link_libraries(pedalog usb)
+
+# The version number.
+set (LIBPEDALOG_VERSION_MAJOR 0)
+set (LIBPEDALOG_VERSION_MINOR 1)
+
+install (TARGETS pedalog DESTINATION lib)
+install (FILES src/pedalog.h DESTINATION include)
+
+set(CPACK_GENERATOR "DEB")
+set(CPACK_DEBIAN_PACKAGE_NAME "libpedalog")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "libusb-0.1-4 (>=2:0.1.12-17)")
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "dan@greenlynx.co.uk")
+SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Library to access data from Pedalog devices")
+SET(CPACK_PACKAGE_VENDOR "Dan Haughey")
+#SET(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/ReadMe.txt")
+SET(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/COPYING")
+SET(CPACK_PACKAGE_VERSION_MAJOR "1")
+SET(CPACK_PACKAGE_VERSION_MINOR "0")
+SET(CPACK_PACKAGE_VERSION_PATCH "0")
+SET(CPACK_PACKAGE_INSTALL_DIRECTORY "CMake ${CMake_VERSION_MAJOR}.${CMake_VERSION_MINOR}")
+#SET(CPACK_STRIP_FILES "bin/MyExecutable")
+#SET(CPACK_SOURCE_STRIP_FILES "")
+SET(CPACK_PACKAGE_EXECUTABLES "pedalog_test" "Test program for Pedalog")
+INCLUDE(CPack)
