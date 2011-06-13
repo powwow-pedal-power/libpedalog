@@ -36,23 +36,23 @@
 
 #define READ_DATA_COMMAND   0x43
 
-#define VOLT_INDEX          1
-#define VOLT_LENGTH         4
+#define VOLTAGE_INDEX       1
+#define VOLTAGE_LENGTH      4
 
-#define I_OUT_INDEX         5
-#define I_OUT_LENGTH        5
+#define CURRENT_INDEX       5
+#define CURRENT_LENGTH      5
 
-#define P_O_INDEX           10
-#define P_O_LENGTH          5
+#define POWER_INDEX         10
+#define POWER_LENGTH        5
 
-#define E_O_INDEX           15
-#define E_O_LENGTH          7
+#define ENERGY_INDEX        15
+#define ENERGY_LENGTH       7
 
-#define P_MAX_INDEX         22
-#define P_MAX_LENGTH        5
+#define MAX_POWER_INDEX     22
+#define MAX_POWER_LENGTH    5
 
-#define P_AVE_INDEX         27
-#define P_AVE_LENGTH        5
+#define AVG_POWER_INDEX     27
+#define AVG_POWER_LENGTH    5
 
 #define TIME_INDEX          32
 #define TIME_LENGTH         8
@@ -151,28 +151,28 @@ int pedalog_find_devices(pedalog_device *devices)
 /* Parses a string returned by the Pedalog device into a pedalog_data structure */
 static int raw_string_to_pedalog_data(char *input, pedalog_data *data)
 {
-    char volt[VOLT_LENGTH];
-    char i_out[I_OUT_LENGTH];
-    char p_o[P_O_LENGTH];
-    char e_o[E_O_LENGTH];
-    char p_max[P_MAX_LENGTH];
-    char p_ave[P_AVE_LENGTH];
+    char voltage[VOLTAGE_LENGTH];
+    char current[CURRENT_LENGTH];
+    char power[POWER_LENGTH];
+    char energy[ENERGY_LENGTH];
+    char max_power[MAX_POWER_LENGTH];
+    char avg_power[AVG_POWER_LENGTH];
     char time[TIME_LENGTH];
 
-    strncpy(volt, input + VOLT_INDEX, VOLT_LENGTH);
-    strncpy(i_out, input + I_OUT_INDEX, I_OUT_LENGTH);
-    strncpy(p_o, input + P_O_INDEX, P_O_LENGTH);
-    strncpy(e_o, input + E_O_INDEX, E_O_LENGTH);
-    strncpy(p_max, input + P_MAX_INDEX, P_MAX_LENGTH);
-    strncpy(p_ave, input + P_AVE_INDEX, P_AVE_LENGTH);
+    strncpy(voltage, input + VOLTAGE_INDEX, VOLTAGE_LENGTH);
+    strncpy(current, input + CURRENT_INDEX, CURRENT_LENGTH);
+    strncpy(power, input + POWER_INDEX, POWER_LENGTH);
+    strncpy(energy, input + ENERGY_INDEX, ENERGY_LENGTH);
+    strncpy(max_power, input + MAX_POWER_INDEX, MAX_POWER_LENGTH);
+    strncpy(avg_power, input + AVG_POWER_INDEX, AVG_POWER_LENGTH);
     strncpy(time, input + TIME_INDEX, TIME_LENGTH);
 
-    data->volt = atof(volt);
-    data->iOut = atof(i_out);
-    data->pO = atof(p_o);
-    data->eO = atof(e_o);
-    data->pMax = atof(p_max);
-    data->pAve = atof(p_ave);
+    data->voltage = atof(voltage);
+    data->current = atof(current);
+    data->power = atof(power);
+    data->energy = atof(energy);
+    data->max_power = atof(max_power);
+    data->avg_power = atof(avg_power);
     data->time = atol(time);
 
     return 1;

@@ -41,12 +41,12 @@ typedef struct {
 } pedalog_device;
 
 typedef struct {
-    double  volt;
-    double  iOut;
-    double  pO;
-    double  eO;
-    double  pMax;
-    double  pAve;
+    double  voltage;
+    double  current;
+    double  power;
+    double  energy;
+    double  max_power;
+    double  avg_power;
     long    time;
 } pedalog_data;
 
