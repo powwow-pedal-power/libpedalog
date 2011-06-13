@@ -12,6 +12,8 @@
 #define RESPONSE_LENGTH     48
 #define USB_TIMEOUT         1000
 
+#define READ_DATA_COMMAND   0x43
+
 #define VOLT_INDEX          1
 #define VOLT_LENGTH         4
 
@@ -46,7 +48,7 @@ static _pedalog_device_internal     device_lookup[PEDALOG_MAX_DEVICES];
 static int                          device_count;
 
 /* Reads the unique device ID from a Pedalog. */
-static int _pedalog_get_id(struct usb_device *device)
+static int read_device_id(struct usb_device *device)
 {
     // TODO: implement this once firmware supports it
     return 0;
@@ -96,7 +98,7 @@ int pedalog_find_devices(pedalog_device *devices)
     usb_find_devices();
 
     busses = usb_get_busses();
-    
+
     device_count = 0;
     for (bus = busses; bus; bus = bus->next) {
         struct usb_device *dev;
@@ -104,7 +106,7 @@ int pedalog_find_devices(pedalog_device *devices)
         for (dev = bus->devices; dev; dev = dev->next) {
             if (dev->descriptor.idVendor == PEDALOG_VENDOR_ID && dev->descriptor.idProduct == PEDALOG_PRODUCT_ID) {
                 // ask the device for its unique ID
-                int id = _pedalog_get_id(dev);
+                int id = read_device_id(dev);
 
                 // add an entry to the lookup table so we can access the usb_device structure later
                 device_lookup[device_count].id = id;
@@ -168,16 +170,15 @@ static int read_data_internal(pedalog_data *data, usb_dev_handle *handle, struct
     r = usb_claim_interface(handle, interface);
     if (r != 0) {
         switch (r) {
-            case EBUSY: return PEDALOG_ERROR_DEVICE_BUSY;
+            case EBUSY:     return PEDALOG_ERROR_DEVICE_BUSY;
             case ENOMEM:    return PEDALOG_ERROR_OUT_OF_MEMORY;
-            default: return PEDALOG_ERROR_UNKNOWN;
+            default:        return PEDALOG_ERROR_UNKNOWN;
         }
     }
 
-    char cmd[1];
-    cmd[0] = 0x43;
+    char cmd = READ_DATA_COMMAND;
 
-    r = usb_bulk_write(handle, 1, cmd, 1, USB_TIMEOUT);
+    r = usb_bulk_write(handle, 1, &cmd, 1, USB_TIMEOUT);
 
     char result[RESPONSE_LENGTH];
     r = usb_bulk_read(handle, 0x81, result, RESPONSE_LENGTH, USB_TIMEOUT);
