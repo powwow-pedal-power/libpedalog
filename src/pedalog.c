@@ -73,14 +73,14 @@ static int                          device_count;
 static int read_device_id(struct usb_device *device)
 {
     // TODO: implement this once firmware supports it
-    return 0;
+    return 1;
 }
 
 /* Given a pedalog_device structure, finds the corresponding usb_device structure in the lookup table. */
 static struct usb_device *lookup_usb_device(pedalog_device *device)
 {
     int i;
-    for (i = 0; i < PEDALOG_MAX_DEVICES; ++i) {
+    for (i = 0; i < device_count; ++i) {
         if (device_lookup[i].id == device->id) {
             return device_lookup[i].device;
         }
@@ -146,6 +146,12 @@ int pedalog_find_devices(pedalog_device *devices)
     }
 
     return device_count;
+}
+
+static int enumerate_devices()
+{
+    pedalog_device devices[PEDALOG_MAX_DEVICES];
+    return pedalog_find_devices(devices);
 }
 
 /* Parses a string returned by the Pedalog device into a pedalog_data structure */
@@ -233,6 +239,16 @@ int pedalog_read_data(pedalog_device *device, pedalog_data *data)
     int r = read_data_internal(data, handle, pedalog);
     
     usb_close(handle);
+
+    if (r != PEDALOG_OK) {
+        // the device may have been disconnected, so re-enumerate devices to find out
+        enumerate_devices();
+
+        pedalog = lookup_usb_device(device);
+        if (pedalog == NULL) {
+            return PEDALOG_ERROR_NO_DEVICE_FOUND;
+        }
+    }
     
     return r;
 }
