@@ -1,7 +1,7 @@
 /*
    pedalog.h
 
-   Copyright (c) 2011 Dan Haughey
+   Copyright (c) 2011 Dan Haughey (http://www.powwow-pedal-power.org.uk)
 
    This file is part of libpedalog.
 
