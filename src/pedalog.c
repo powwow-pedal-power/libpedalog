@@ -57,20 +57,20 @@
 #define TIME_INDEX          32
 #define TIME_LENGTH         8
 
-/* Structure to match a device's unique ID to its usb_device structure to access it directly */
+/* Structure to match a device's serial number to its usb_device structure to access it directly */
 typedef struct {
-    int         id;
+    int                 serial;
     struct usb_device   *device;
 } _pedalog_device_internal;
 
-/* A lookup table to find usb_device structures from unique Pedalog IDs after calling pedalog_find_devices */
+/* A lookup table to find usb_device structures from Pedalog serial numbers after calling pedalog_find_devices */
 static _pedalog_device_internal     device_lookup[PEDALOG_MAX_DEVICES];
 
 /* The number of Pedalog devices found in the last call to pedalog_find_devices */
 static int                          device_count;
 
-/* Reads the unique device ID from a Pedalog. */
-static int read_device_id(struct usb_device *device)
+/* Reads the unique serial number from a Pedalog. */
+static int read_device_serial(struct usb_device *device)
 {
     // TODO: implement this once firmware supports it
     return 1;
@@ -81,7 +81,7 @@ static struct usb_device *lookup_usb_device(pedalog_device *device)
 {
     int i;
     for (i = 0; i < device_count; ++i) {
-        if (device_lookup[i].id == device->id) {
+        if (device_lookup[i].serial == device->serial) {
             return device_lookup[i].device;
         }
     }
@@ -127,15 +127,15 @@ int pedalog_find_devices(pedalog_device *devices)
 
         for (dev = bus->devices; dev; dev = dev->next) {
             if (dev->descriptor.idVendor == PEDALOG_VENDOR_ID && dev->descriptor.idProduct == PEDALOG_PRODUCT_ID) {
-                // ask the device for its unique ID
-                int id = read_device_id(dev);
+                // ask the device for its unique serial number
+                int serial = read_device_serial(dev);
 
                 // add an entry to the lookup table so we can access the usb_device structure later
-                device_lookup[device_count].id = id;
+                device_lookup[device_count].serial = serial;
                 device_lookup[device_count].device = dev;
                 
                 // populate a  pedalog_device struct to pass back to the caller
-                devices[device_count].id = id;
+                devices[device_count].serial = serial;
 
                 ++device_count;
                 if (device_count >= PEDALOG_MAX_DEVICES) {

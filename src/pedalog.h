@@ -37,7 +37,7 @@
 #define PEDALOG_MAX_ERROR_MESSAGE       128
 
 typedef struct {
-    int id;
+    int serial;
 } pedalog_device;
 
 typedef struct {
