@@ -10,3 +10,9 @@ set (LIBPEDALOG_VERSION_MINOR 1)
 
 install (TARGETS pedalog DESTINATION lib)
 install (FILES src/pedalog.h DESTINATION include)
+
+# Install udev rule so any user can access Pedalog devices
+install (
+	DIRECTORY	udev/rules/
+	DESTINATION /etc/udev/rules.d
+)

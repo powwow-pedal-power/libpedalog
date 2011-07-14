@@ -1,0 +1,2 @@
+# Allow all users to access Pedalog devices
+ATTR{idVendor}=="04d8", ATTR{idProduct}=="000c", MODE:="0666"

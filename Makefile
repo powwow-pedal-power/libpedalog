@@ -149,6 +149,11 @@ pedalog/fast:
 	$(MAKE) -f CMakeFiles/pedalog.dir/build.make CMakeFiles/pedalog.dir/build
 .PHONY : pedalog/fast
 
+# Manual pre-install relink rule for target.
+pedalog/preinstall:
+	$(MAKE) -f CMakeFiles/pedalog.dir/build.make CMakeFiles/pedalog.dir/preinstall
+.PHONY : pedalog/preinstall
+
 src/pedalog.o: src/pedalog.c.o
 .PHONY : src/pedalog.o
 
