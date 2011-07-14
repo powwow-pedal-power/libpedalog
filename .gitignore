@@ -6,3 +6,5 @@ install_manifest.txt
 Makefile
 /_CPack_Packages
 *.deb
+*.so
+*.so.*
