@@ -2,7 +2,7 @@ libpedalog (0.2-3) unstable; urgency=low
 
   * Fixed relative paths in debian/*.install files
 
- -- Dan Haughey <dan@powwow-pedal-pwoer.org.uk>  Wed, 20 Jul 2011 13:31:51 +0100
+ -- Dan Haughey <dan@powwow-pedal-power.org.uk>  Wed, 20 Jul 2011 13:31:51 +0100
 
 libpedalog (0.2-2) unstable; urgency=low
 
