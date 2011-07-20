@@ -1,4 +1,4 @@
-libpedalog (0.1-2) jaunty; urgency=low
+libpedalog (0.2-1) jaunty; urgency=low
 
   * Lowered debuild dependency to allow building on jaunty
 
