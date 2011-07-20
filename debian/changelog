@@ -1,3 +1,9 @@
+libpedalog (0.2-4) unstable; urgency=low
+
+  * Fixed shared library version in install file
+
+ -- Dan Haughey <dan@powwow-pedal-power.org.uk>  Wed, 20 Jul 2011 13:45:51 +0100
+
 libpedalog (0.2-3) unstable; urgency=low
 
   * Fixed relative paths in debian/*.install files
