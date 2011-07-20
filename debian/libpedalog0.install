@@ -1,2 +1,3 @@
 /usr/lib/libpedalog.so.0
 /usr/lib/libpedalog.so.0.1
+/etc/udev/rules.d/*
