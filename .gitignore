@@ -8,3 +8,10 @@ Makefile
 *.deb
 *.so
 *.so.*
+/debian/files
+*.log
+*.substvars
+*.debhelper
+/debian/libpedalog0
+/debian/libpedalog-dev
+/debian/tmp
