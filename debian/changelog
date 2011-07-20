@@ -1,3 +1,9 @@
+libpedalog (0.1-2) unstable; urgency=low
+
+  * Lowered debuild dependency to allow building on jaunty
+
+ -- Dan Haughey <dan@powwow-pedal-power.org.uk>  Wed, 20 Jul 2011 11:59:31 +0100
+
 libpedalog (0.1-1) unstable; urgency=low
 
   * Initial release
