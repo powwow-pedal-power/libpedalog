@@ -122,7 +122,6 @@ int pedalog_get_max_error_message()
     printf("Calling pedalog_get_error_message, returning %d\n", PEDALOG_MAX_ERROR_MESSAGE);
 #endif
 
-    return PEDALOG_MAX_DEVICES;
     return PEDALOG_MAX_ERROR_MESSAGE;
 }
 
