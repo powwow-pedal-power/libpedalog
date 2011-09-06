@@ -19,7 +19,6 @@
  * along with libpedalog.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 #include <stdio.h>
 #include <errno.h>
 #include <sys/types.h>
@@ -92,7 +91,15 @@ static struct usb_device *lookup_usb_device(pedalog_device *device)
 /* Initialises the Pedalog library. This must be called first, before any other functions. Returns PEDALOG_OK. */
 int pedalog_init()
 {
+#ifdef DEBUG
+    printf("Entering pedalog_init...\n");
+#endif
+
     usb_init();
+
+#ifdef DEBUG
+    printf("Exiting pedalog_init, returning PEDALOG_OK\n");
+#endif
 
     return PEDALOG_OK;
 }
@@ -100,12 +107,21 @@ int pedalog_init()
 /* Returns the value of the PEDALOG_MAX_DEVICES constant. */
 int pedalog_get_max_devices()
 {
+#ifdef DEBUG
+    printf("Calling pedalog_get_max_devices, returning %d\n", PEDALOG_MAX_DEVICES);
+#endif
+
     return PEDALOG_MAX_DEVICES;
 }
 
 /* Returns the value of the PEDALOG_MAX_ERROR_MESSAGE constant. */
 int pedalog_get_max_error_message()
 {
+#ifdef DEBUG
+    printf("Calling pedalog_get_error_message, returning %d\n", PEDALOG_MAX_ERROR_MESSAGE);
+#endif
+
+    return PEDALOG_MAX_DEVICES;
     return PEDALOG_MAX_ERROR_MESSAGE;
 }
 
@@ -113,6 +129,10 @@ int pedalog_get_max_error_message()
  * in length. Returns the number of devices currently connected, or 0 if none were found. */
 int pedalog_find_devices(pedalog_device *devices)
 {
+#ifdef DEBUG
+    printf("Entering pedalog_find_devices...\n");
+#endif
+
     struct usb_bus *busses;
     struct usb_bus *bus;
 
@@ -127,8 +147,16 @@ int pedalog_find_devices(pedalog_device *devices)
 
         for (dev = bus->devices; dev; dev = dev->next) {
             if (dev->descriptor.idVendor == PEDALOG_VENDOR_ID && dev->descriptor.idProduct == PEDALOG_PRODUCT_ID) {
+#ifdef DEBUG
+                printf("  Found a Pedalog device...\n");
+#endif
+
                 // ask the device for its unique serial number
                 int serial = read_device_serial(dev);
+
+#ifdef DEBUG
+                printf("    Serial is %d\n", serial);
+#endif
 
                 // add an entry to the lookup table so we can access the usb_device structure later
                 device_lookup[device_count].serial = serial;
@@ -139,11 +167,19 @@ int pedalog_find_devices(pedalog_device *devices)
 
                 ++device_count;
                 if (device_count >= PEDALOG_MAX_DEVICES) {
+#ifdef DEBUG
+                    printf("  Found PEDALOG_MAX_DEVICES (%d) so returning\n", PEDALOG_MAX_DEVICES);
+#endif
+
                     break;
                 }
             }
         }
     }
+
+#ifdef DEBUG
+    printf("Exiting pedalog_find_devices, returning %d\n", device_count);
+#endif
 
     return device_count;
 }
@@ -188,8 +224,15 @@ static int raw_string_to_pedalog_data(char *input, pedalog_data *data)
  * or an error value (as defined in pedalg.h) will be returned. */
 static int read_data_internal(pedalog_data *data, usb_dev_handle *handle, struct usb_device *pedalog)
 {
+#ifdef DEBUG
+    printf("Entering read_data_internal...\n");
+#endif
+
     int r = usb_set_configuration(handle, pedalog->config[0].bConfigurationValue);
     if (r != 0) {
+#ifdef DEBUG
+        printf("usb_set_configuration returned %d, exiting read_data_internal, returning PEDALOG_ERROR_FAILED_TO_OPEN\n", r);
+#endif
         return PEDALOG_ERROR_FAILED_TO_OPEN;
     }
     
@@ -198,27 +241,61 @@ static int read_data_internal(pedalog_data *data, usb_dev_handle *handle, struct
     r = usb_claim_interface(handle, interface);
     if (r != 0) {
         switch (r) {
-            case EBUSY:     return PEDALOG_ERROR_DEVICE_BUSY;
-            case ENOMEM:    return PEDALOG_ERROR_OUT_OF_MEMORY;
-            default:        return PEDALOG_ERROR_UNKNOWN;
+            case EBUSY:
+#ifdef DEBUG
+                printf("usb_claim_interface returned %d, exiting read_data_internal, returning PEDALOG_ERROR_DEVICE_BUSY\n", r);
+#endif
+                return PEDALOG_ERROR_DEVICE_BUSY;
+            case ENOMEM:
+#ifdef DEBUG
+                printf("usb_claim_interface returned %d, exiting read_data_internal, returning PEDALOG_ERROR_OUT_OF_MEMORY\n", r);
+#endif
+                return PEDALOG_ERROR_OUT_OF_MEMORY;
+            default:
+#ifdef DEBUG
+                printf("usb_claim_interface returned %d, exiting read_data_internal, returning PEDALOG_ERROR_UNKNOWN\n", r);
+#endif
+                return PEDALOG_ERROR_UNKNOWN;
         }
     }
 
     char cmd = READ_DATA_COMMAND;
 
+#ifdef DEBUG
+    printf("  Calling usb_bulk_write with command '%x'...\n", cmd);
+#endif
+
     r = usb_bulk_write(handle, 1, &cmd, 1, USB_TIMEOUT);
 
     char result[RESPONSE_LENGTH];
+
+#ifdef DEBUG
+    printf("  Calling usb_bulk_read, expecting %d bytes response...\n", RESPONSE_LENGTH);
+#endif
+
     r = usb_bulk_read(handle, 0x81, result, RESPONSE_LENGTH, USB_TIMEOUT);
     
+#ifdef DEBUG
+    printf("  usb_bulk_read returned %d bytes response\n", r);
+    
+    printf("  calling usb_release_interface\n");
+#endif
+
     usb_release_interface(handle, interface);
     
     if (r != RESPONSE_LENGTH)
     {
+#ifdef DEBUG
+        printf("Response length doesn't match, exiting read_data_internal, returning PEDALOG_ERROR_BAD_RESPONSE\n");
+#endif
         return PEDALOG_ERROR_BAD_RESPONSE;
     }
 
     raw_string_to_pedalog_data(result, data);
+
+#ifdef DEBUG
+    printf("Exiting read_data_internal, returning PEDALOG_OK\n");
+#endif
 
     return PEDALOG_OK;
 }
@@ -228,28 +305,69 @@ static int read_data_internal(pedalog_data *data, usb_dev_handle *handle, struct
  * data and PEDALOG_OK is returned. Otherwise, an error value (as defined in pedalog.h) will be returned. */
 int pedalog_read_data(pedalog_device *device, pedalog_data *data)
 {
+#ifdef DEBUG
+    printf("Entering pedalog_read_data...\n");
+
+    printf("  Calling lookup_usb_device for serial '%d'...\n", device->serial);
+#endif
+
     struct usb_device *pedalog = lookup_usb_device(device);
     if (pedalog == NULL) {
+#ifdef DEBUG
+        printf("  lookup_usb_device returned NULL, exiting pedalog_read_data, returning PEDALOG_ERROR_NO_DEVICE_FOUND\n");
+#endif
         return PEDALOG_ERROR_NO_DEVICE_FOUND;
     }
 
     usb_dev_handle *handle;
+
+#ifdef DEBUG
+    printf("  Calling usb_open...\n");
+#endif
+
     handle = usb_open(pedalog);
     
+#ifdef DEBUG
+    printf("  usb_open returned handle '%x'\n", handle);
+
+    printf("  Calling read_data_internal...\n");
+#endif
+
     int r = read_data_internal(data, handle, pedalog);
+
+#ifdef DEBUG
+    printf("  read_data_internal returned %d\n", r);
+
+    printf("  Calling usb_close\n");
+#endif
     
     usb_close(handle);
 
     if (r != PEDALOG_OK) {
+#ifdef DEBUG
+        printf("  r != PEDALOG_OK (%d) so calling enumerate_devices\n", PEDALOG_OK);
+#endif
+
         // the device may have been disconnected, so re-enumerate devices to find out
         enumerate_devices();
 
+#ifdef DEBUG
+        printf("  Calling lookup_usb_device...\n");
+#endif
+
         pedalog = lookup_usb_device(device);
         if (pedalog == NULL) {
+#ifdef DEBUG
+            printf("  lookup_usb_device returned NULL, exiting pedalog_read_data, returning PEDALOG_ERROR_NO_DEVICE_FOUND\n");
+#endif
             return PEDALOG_ERROR_NO_DEVICE_FOUND;
         }
     }
-    
+   
+#ifdef DEBUG
+    printf("Exiting pedalog_read_data, returning %d\n", r);
+#endif
+
     return r;
 }
 
