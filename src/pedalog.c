@@ -304,6 +304,64 @@ static int read_data_internal(pedalog_data *data, usb_dev_handle *handle, struct
     return PEDALOG_OK;
 }
 
+static struct usb_device *reenumerate_and_lookup_device(pedalog_device *device, int repeat_call)
+{
+#ifdef DEBUG
+    printf("Entering reenumerate_and_lookup_device...\n");
+
+    printf("  Calling enumerate_devices\n");
+#endif
+
+    int device_count = enumerate_devices();
+    if (device_count == 0)
+    {
+#ifdef DEBUG
+        printf("0 devices enumerated, so exiting reenumerate_and_lookup_device, returning NULL");
+#endif
+        return NULL;
+    }
+
+#ifdef DEBUG
+    printf("  Calling lookup_usb_device...\n");
+#endif
+
+    struct usb_device *pedalog;
+
+    pedalog = lookup_usb_device(device);
+    if (pedalog == NULL) {
+#ifdef DEBUG
+        printf("  lookup_usb_device returned NULL, exiting pedalog_read_data, returning NULL\n");
+#endif
+        return NULL;
+    }
+    
+#ifdef WIN32
+    // On Windows, the device will sometimes be found a while after it's been disconnected, so we do a
+    // crappy workaround
+    if (repeat_call == 1)
+    {
+#ifdef DEBUG
+        printf("Exiting reenumerate_and_lookup_device, returning found pedalog_device\n");
+#endif
+        return pedalog;
+    }
+    else
+    {
+#ifdef DEBUG
+        printf("  Trying workaround for strange win32 behaviour, sleeping a while and reenumerating again...\n");
+#endif
+        Sleep(500);
+        return reenumerate_and_lookup_device(device, 1);
+    }
+#else
+#ifdef DEBUG
+        printf("Exiting reenumerate_and_lookup_device, returning found pedalog_device\n");
+#endif
+    return pedalog;
+#endif
+}
+
+
 /* Reads the current data from a Pedalog device. pedalog_find_devices must have been called first, to obtain a
  * pedalog_device structure for the device that is to be read. If successful, the pedalog_data structure is populated with
  * data and PEDALOG_OK is returned. Otherwise, an error value (as defined in pedalog.h) will be returned. */
@@ -353,13 +411,7 @@ int pedalog_read_data(pedalog_device *device, pedalog_data *data)
 #endif
 
         // the device may have been disconnected, so re-enumerate devices to find out
-        enumerate_devices();
-
-#ifdef DEBUG
-        printf("  Calling lookup_usb_device...\n");
-#endif
-
-        pedalog = lookup_usb_device(device);
+        pedalog = reenumerate_and_lookup_device(device, 0);
         if (pedalog == NULL) {
 #ifdef DEBUG
             printf("  lookup_usb_device returned NULL, exiting pedalog_read_data, returning PEDALOG_ERROR_NO_DEVICE_FOUND\n");
