@@ -62,7 +62,7 @@
 #define TIME_LENGTH         8
 
 #ifdef WIN32
-#define WIN32_WORKAROUND_ATTEMPTS   6
+#define WIN32_WORKAROUND_ATTEMPTS   8
 #define WIN32_WORKAROUND_SLEEP      250
 #endif
 
