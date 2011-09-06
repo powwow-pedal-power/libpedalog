@@ -351,7 +351,7 @@ static struct usb_device *reenumerate_and_lookup_device(pedalog_device *device, 
 #ifdef DEBUG
         printf("  Trying workaround for strange win32 behaviour, sleeping a while and reenumerating again...\n");
 #endif
-        Sleep(500);
+        Sleep(1000);
         return reenumerate_and_lookup_device(device, 1);
     }
 #else
