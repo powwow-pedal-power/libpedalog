@@ -388,10 +388,19 @@ int pedalog_read_data(pedalog_device *device, pedalog_data *data)
 #endif
 
     handle = usb_open(pedalog);
-    
 #ifdef DEBUG
     printf("  usb_open returned handle '%x'\n", handle);
+#endif
 
+    if (handle == 0)
+    {
+#ifdef DEBUG
+        printf("Exiting pedalog_read_data, returning PEDALOG_ERROR_NO_DEVICE_FOUND\n");
+#endif
+        return PEDALOG_ERROR_NO_DEVICE_FOUND;
+    }
+    
+#ifdef DEBUG
     printf("  Calling read_data_internal...\n");
 #endif
 
