@@ -62,6 +62,11 @@
 #define TIME_INDEX          32
 #define TIME_LENGTH         8
 
+#ifdef WIN32
+#define WIN32_WORKAROUND_ATTEMPTS   6
+#define WIN32_WORKAROUND_SLEEP      250
+#endif
+
 /* Structure to match a device's serial number to its usb_device structure to access it directly */
 typedef struct {
     int                 serial;
@@ -339,7 +344,7 @@ static struct usb_device *reenumerate_and_lookup_device(pedalog_device *device, 
 #ifdef WIN32
     // On Windows, the device will sometimes be found a while after it's been disconnected, so we do a
     // crappy workaround
-    if (repeat_call == 1)
+    if (repeat_call == WIN32_WORKAROUND_ATTEMPTS)
     {
 #ifdef DEBUG
         printf("Exiting reenumerate_and_lookup_device, returning found pedalog_device\n");
@@ -351,8 +356,8 @@ static struct usb_device *reenumerate_and_lookup_device(pedalog_device *device, 
 #ifdef DEBUG
         printf("  Trying workaround for strange win32 behaviour, sleeping a while and reenumerating again...\n");
 #endif
-        Sleep(1000);
-        return reenumerate_and_lookup_device(device, 1);
+        Sleep(WIN32_WORKAROUND_SLEEP);
+        return reenumerate_and_lookup_device(device, repeat_call + 1);
     }
 #else
 #ifdef DEBUG
