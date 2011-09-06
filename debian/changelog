@@ -1,3 +1,9 @@
+libpedalog (0.3-1) maverick; urgency=low
+
+  * New upstream version
+
+ -- Dan Haughey <dan@powwow-pedal-power.org.uk>  Tue, 06 Sep 2011 15:54:00 +0100
+
 libpedalog (0.2-4) maverick; urgency=low
 
   * Fixed shared library version in install file
