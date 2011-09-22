@@ -129,7 +129,7 @@ int pedalog_get_max_devices()
 int pedalog_get_max_error_message()
 {
 #ifdef DEBUG
-    printf("Calling pedalog_get_error_message, returning %d\n", PEDALOG_MAX_ERROR_MESSAGE);
+    printf("Calling pedalog_get_max_error_message, returning %d\n", PEDALOG_MAX_ERROR_MESSAGE);
 #endif
 
     return PEDALOG_MAX_ERROR_MESSAGE;
@@ -286,13 +286,21 @@ static int read_data_internal(pedalog_data *data, usb_dev_handle *handle, struct
     r = usb_bulk_read(handle, 0x81, result, RESPONSE_LENGTH, USB_TIMEOUT);
     
 #ifdef DEBUG
-    printf("  usb_bulk_read returned %d bytes response\n", r);
+    printf("  usb_bulk_read returned %d\n", r);
     
-    printf("  calling usb_release_interface\n");
+    printf("  Calling usb_release_interface\n");
 #endif
 
     usb_release_interface(handle, interface);
     
+    if (r < 0)
+    {
+#ifdef DEBUG
+        printf("Exiting read_data_internal, returning %d\n", r);
+#endif
+        return r;
+    }
+
     if (r != RESPONSE_LENGTH)
     {
 #ifdef DEBUG
