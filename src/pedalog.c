@@ -194,7 +194,7 @@ static int read_device_serial(struct usb_device *device)
         // No response was returned, or an error - assume this is a V1 Pedalog without a serial and
         // return 0
 #ifdef DEBUG
-    printf("Bad response given, assuming old firmware, exiting read_device_serial, returning '0'\n");
+    printf("Bad response given, assuming old firmware, exiting read_device_serial, returning 0\n");
 #endif
         return 0;
     }
@@ -205,7 +205,7 @@ static int read_device_serial(struct usb_device *device)
     int serial = atof(serial_string);
 
 #ifdef DEBUG
-    printf("Exiting read_device_serial, returning %d\n", r);
+    printf("Exiting read_device_serial, returning %d\n", serial);
 #endif
 
     return serial;
