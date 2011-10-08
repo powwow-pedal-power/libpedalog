@@ -41,6 +41,9 @@
 
 #define USB_TIMEOUT         1000
 
+#define GET_SERIAL_COMMAND  0x01
+#define MAX_SERIAL_LENGTH   4
+
 #define READ_DATA_COMMAND   0x43
 
 #define VOLTAGE_INDEX       1
@@ -232,18 +235,16 @@ static int raw_string_to_pedalog_data(char *input, pedalog_data *data)
     return 1;
 }
 
-/* Does the actual work of reading data from the Pedalog device. Returns PEDALOG_OK if successful,
- * or an error value (as defined in pedalg.h) will be returned. */
-static int read_data_internal(pedalog_data *data, usb_dev_handle *handle, struct usb_device *pedalog)
+static int send_command(usb_dev_handle *handle, struct usb_device *pedalog, char cmd, char *response, int max_response)
 {
 #ifdef DEBUG
-    printf("Entering read_data_internal...\n");
+    printf("Entering send_command...\n");
 #endif
 
     int r = usb_set_configuration(handle, pedalog->config[0].bConfigurationValue);
     if (r != 0) {
 #ifdef DEBUG
-        printf("usb_set_configuration returned %d, exiting read_data_internal, returning PEDALOG_ERROR_FAILED_TO_OPEN\n", r);
+        printf("usb_set_configuration returned %d, exiting send_command, returning PEDALOG_ERROR_FAILED_TO_OPEN\n", r);
 #endif
         return PEDALOG_ERROR_FAILED_TO_OPEN;
     }
@@ -255,23 +256,21 @@ static int read_data_internal(pedalog_data *data, usb_dev_handle *handle, struct
         switch (r) {
             case EBUSY:
 #ifdef DEBUG
-                printf("usb_claim_interface returned %d, exiting read_data_internal, returning PEDALOG_ERROR_DEVICE_BUSY\n", r);
+                printf("usb_claim_interface returned %d, exiting send_command, returning PEDALOG_ERROR_DEVICE_BUSY\n", r);
 #endif
                 return PEDALOG_ERROR_DEVICE_BUSY;
             case ENOMEM:
 #ifdef DEBUG
-                printf("usb_claim_interface returned %d, exiting read_data_internal, returning PEDALOG_ERROR_OUT_OF_MEMORY\n", r);
+                printf("usb_claim_interface returned %d, exiting send_command, returning PEDALOG_ERROR_OUT_OF_MEMORY\n", r);
 #endif
                 return PEDALOG_ERROR_OUT_OF_MEMORY;
             default:
 #ifdef DEBUG
-                printf("usb_claim_interface returned %d, exiting read_data_internal, returning PEDALOG_ERROR_UNKNOWN\n", r);
+                printf("usb_claim_interface returned %d, exiting send_command, returning PEDALOG_ERROR_UNKNOWN\n", r);
 #endif
                 return PEDALOG_ERROR_UNKNOWN;
         }
     }
-
-    char cmd = READ_DATA_COMMAND;
 
 #ifdef DEBUG
     printf("  Calling usb_bulk_write with command '%x'...\n", cmd);
@@ -279,13 +278,11 @@ static int read_data_internal(pedalog_data *data, usb_dev_handle *handle, struct
 
     r = usb_bulk_write(handle, 1, &cmd, 1, USB_TIMEOUT);
 
-    char result[V2_RESPONSE_LENGTH];
-
 #ifdef DEBUG
-    printf("  Calling usb_bulk_read, expecting at least %d bytes response, at most %d bytes...\n", V1_RESPONSE_LENGTH, V2_RESPONSE_LENGTH);
+    printf("  Calling usb_bulk_read, expecting at most %d bytes...\n", max_response);
 #endif
 
-    r = usb_bulk_read(handle, 0x81, result, V2_RESPONSE_LENGTH, USB_TIMEOUT);
+    r = usb_bulk_read(handle, 0x81, response, max_response, USB_TIMEOUT);
     
 #ifdef DEBUG
     printf("  usb_bulk_read returned %d\n", r);
@@ -294,6 +291,33 @@ static int read_data_internal(pedalog_data *data, usb_dev_handle *handle, struct
 #endif
 
     usb_release_interface(handle, interface);
+    
+#ifdef DEBUG
+    printf("Exiting send_command, returning %d\n", r);
+#endif
+
+    return r;
+}
+
+/* Does the actual work of reading data from the Pedalog device. Returns PEDALOG_OK if successful,
+ * or an error value (as defined in pedalg.h) will be returned. */
+static int read_data_internal(pedalog_data *data, usb_dev_handle *handle, struct usb_device *pedalog)
+{
+#ifdef DEBUG
+    printf("Entering read_data_internal...\n");
+#endif
+
+    char result[V2_RESPONSE_LENGTH];
+
+#ifdef DEBUG
+    printf("  Calling send_command, expecting at least %d bytes response, at most %d bytes...\n", V1_RESPONSE_LENGTH, V2_RESPONSE_LENGTH);
+#endif
+
+    int r = send_command(handle, pedalog, READ_DATA_COMMAND, result, V2_RESPONSE_LENGTH);
+
+#ifdef DEBUG
+    printf("  send_command returned %d\n", r);
+#endif
     
     if (r < 0)
     {
