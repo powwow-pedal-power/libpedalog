@@ -35,8 +35,13 @@
 #define PEDALOG_VENDOR_ID   0x04d8
 #define PEDALOG_PRODUCT_ID  0x000c
 
-#define RESPONSE_LENGTH     48
+#define V1_RESPONSE_LENGTH  48
+#define V2_RESPONSE_LENGTH  52
+
 #define USB_TIMEOUT         1000
+
+#define GET_SERIAL_COMMAND  0x01
+#define MAX_SERIAL_LENGTH   4
 
 #define READ_DATA_COMMAND   0x43
 
@@ -78,11 +83,132 @@ static _pedalog_device_internal     device_lookup[PEDALOG_MAX_DEVICES];
 /* The number of Pedalog devices found in the last call to pedalog_find_devices */
 static int                          device_count;
 
+static int send_command(usb_dev_handle *handle, struct usb_device *pedalog, char cmd, char *response, int max_response)
+{
+#ifdef DEBUG
+    printf("Entering send_command...\n");
+#endif
+
+    int r = usb_set_configuration(handle, pedalog->config[0].bConfigurationValue);
+    if (r != 0) {
+#ifdef DEBUG
+        printf("usb_set_configuration returned %d, exiting send_command, returning PEDALOG_ERROR_FAILED_TO_OPEN\n", r);
+#endif
+        return PEDALOG_ERROR_FAILED_TO_OPEN;
+    }
+    
+    int interface = pedalog->config[0].interface[0].altsetting->bInterfaceNumber;
+    
+    r = usb_claim_interface(handle, interface);
+    if (r != 0) {
+        switch (r) {
+            case EBUSY:
+#ifdef DEBUG
+                printf("usb_claim_interface returned %d, exiting send_command, returning PEDALOG_ERROR_DEVICE_BUSY\n", r);
+#endif
+                return PEDALOG_ERROR_DEVICE_BUSY;
+            case ENOMEM:
+#ifdef DEBUG
+                printf("usb_claim_interface returned %d, exiting send_command, returning PEDALOG_ERROR_OUT_OF_MEMORY\n", r);
+#endif
+                return PEDALOG_ERROR_OUT_OF_MEMORY;
+            default:
+#ifdef DEBUG
+                printf("usb_claim_interface returned %d, exiting send_command, returning PEDALOG_ERROR_UNKNOWN\n", r);
+#endif
+                return PEDALOG_ERROR_UNKNOWN;
+        }
+    }
+
+#ifdef DEBUG
+    printf("  Calling usb_bulk_write with command '%x'...\n", cmd);
+#endif
+
+    r = usb_bulk_write(handle, 1, &cmd, 1, USB_TIMEOUT);
+
+#ifdef DEBUG
+    printf("  Calling usb_bulk_read, expecting at most %d bytes...\n", max_response);
+#endif
+
+    r = usb_bulk_read(handle, 0x81, response, max_response, USB_TIMEOUT);
+    
+#ifdef DEBUG
+    printf("  usb_bulk_read returned %d\n", r);
+    
+    printf("  Calling usb_release_interface\n");
+#endif
+
+    usb_release_interface(handle, interface);
+    
+#ifdef DEBUG
+    printf("Exiting send_command, returning %d\n", r);
+#endif
+
+    return r;
+}
+
 /* Reads the unique serial number from a Pedalog. */
 static int read_device_serial(struct usb_device *device)
 {
-    // TODO: implement this once firmware supports it
-    return 1;
+#ifdef DEBUG
+    printf("Entering read_device_serial...\n");
+#endif
+
+#ifdef DEBUG
+    printf("  Calling usb_open...\n");
+#endif
+
+    usb_dev_handle *handle = usb_open(device);
+
+#ifdef DEBUG
+    printf("  usb_open returned handle '%x'\n", handle);
+#endif
+
+    if (handle == 0)
+    {
+#ifdef DEBUG
+        printf("Exiting read_device_serial, returning PEDALOG_ERROR_NO_DEVICE_FOUND\n");
+#endif
+        return PEDALOG_ERROR_NO_DEVICE_FOUND;
+    }
+
+    // Add 1 to MAX_SERIAL_LENGTH to deal with the extra leading byte that is returned
+    char response[MAX_SERIAL_LENGTH + 1];
+
+#ifdef DEBUG
+    printf("  Calling send_command with command '%d', expecting %d bytes response...\n", GET_SERIAL_COMMAND, MAX_SERIAL_LENGTH + 1);
+#endif
+
+    int r = send_command(handle, device, GET_SERIAL_COMMAND, response, MAX_SERIAL_LENGTH + 1);
+
+#ifdef DEBUG
+    printf("  send_command returned %d\n", r);
+
+    printf("  Calling usb_close\n");
+#endif
+    
+    usb_close(handle);
+
+    if (r <= 0)
+    {
+        // No response was returned, or an error - assume this is a V1 Pedalog without a serial and
+        // return 0
+#ifdef DEBUG
+    printf("Bad response given, assuming old firmware, exiting read_device_serial, returning 0\n");
+#endif
+        return 0;
+    }
+
+    char serial_string[MAX_SERIAL_LENGTH];
+    strncpy(serial_string, response + 1, r - 1);
+
+    int serial = atof(serial_string);
+
+#ifdef DEBUG
+    printf("Exiting read_device_serial, returning %d\n", serial);
+#endif
+
+    return serial;
 }
 
 /* Given a pedalog_device structure, finds the corresponding usb_device structure in the lookup table. */
@@ -128,7 +254,7 @@ int pedalog_get_max_devices()
 int pedalog_get_max_error_message()
 {
 #ifdef DEBUG
-    printf("Calling pedalog_get_error_message, returning %d\n", PEDALOG_MAX_ERROR_MESSAGE);
+    printf("Calling pedalog_get_max_error_message, returning %d\n", PEDALOG_MAX_ERROR_MESSAGE);
 #endif
 
     return PEDALOG_MAX_ERROR_MESSAGE;
@@ -237,65 +363,30 @@ static int read_data_internal(pedalog_data *data, usb_dev_handle *handle, struct
     printf("Entering read_data_internal...\n");
 #endif
 
-    int r = usb_set_configuration(handle, pedalog->config[0].bConfigurationValue);
-    if (r != 0) {
+    char result[V2_RESPONSE_LENGTH];
+
 #ifdef DEBUG
-        printf("usb_set_configuration returned %d, exiting read_data_internal, returning PEDALOG_ERROR_FAILED_TO_OPEN\n", r);
+    printf("  Calling send_command, expecting at least %d bytes response, at most %d bytes...\n", V1_RESPONSE_LENGTH, V2_RESPONSE_LENGTH);
 #endif
-        return PEDALOG_ERROR_FAILED_TO_OPEN;
-    }
+
+    int r = send_command(handle, pedalog, READ_DATA_COMMAND, result, V2_RESPONSE_LENGTH);
+
+#ifdef DEBUG
+    printf("  send_command returned %d\n", r);
+#endif
     
-    int interface = pedalog->config[0].interface[0].altsetting->bInterfaceNumber;
-    
-    r = usb_claim_interface(handle, interface);
-    if (r != 0) {
-        switch (r) {
-            case EBUSY:
-#ifdef DEBUG
-                printf("usb_claim_interface returned %d, exiting read_data_internal, returning PEDALOG_ERROR_DEVICE_BUSY\n", r);
-#endif
-                return PEDALOG_ERROR_DEVICE_BUSY;
-            case ENOMEM:
-#ifdef DEBUG
-                printf("usb_claim_interface returned %d, exiting read_data_internal, returning PEDALOG_ERROR_OUT_OF_MEMORY\n", r);
-#endif
-                return PEDALOG_ERROR_OUT_OF_MEMORY;
-            default:
-#ifdef DEBUG
-                printf("usb_claim_interface returned %d, exiting read_data_internal, returning PEDALOG_ERROR_UNKNOWN\n", r);
-#endif
-                return PEDALOG_ERROR_UNKNOWN;
-        }
-    }
-
-    char cmd = READ_DATA_COMMAND;
-
-#ifdef DEBUG
-    printf("  Calling usb_bulk_write with command '%x'...\n", cmd);
-#endif
-
-    r = usb_bulk_write(handle, 1, &cmd, 1, USB_TIMEOUT);
-
-    char result[RESPONSE_LENGTH];
-
-#ifdef DEBUG
-    printf("  Calling usb_bulk_read, expecting %d bytes response...\n", RESPONSE_LENGTH);
-#endif
-
-    r = usb_bulk_read(handle, 0x81, result, RESPONSE_LENGTH, USB_TIMEOUT);
-    
-#ifdef DEBUG
-    printf("  usb_bulk_read returned %d bytes response\n", r);
-    
-    printf("  calling usb_release_interface\n");
-#endif
-
-    usb_release_interface(handle, interface);
-    
-    if (r != RESPONSE_LENGTH)
+    if (r < 0)
     {
 #ifdef DEBUG
-        printf("Response length doesn't match, exiting read_data_internal, returning PEDALOG_ERROR_BAD_RESPONSE\n");
+        printf("Exiting read_data_internal, returning %d\n", r);
+#endif
+        return r;
+    }
+
+    if (r < V1_RESPONSE_LENGTH)
+    {
+#ifdef DEBUG
+        printf("Response length (%d) was less than minimum length (%d), exiting read_data_internal, returning PEDALOG_ERROR_BAD_RESPONSE\n", r, V1_RESPONSE_LENGTH);
 #endif
         return PEDALOG_ERROR_BAD_RESPONSE;
     }
