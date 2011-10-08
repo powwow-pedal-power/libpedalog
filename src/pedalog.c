@@ -36,7 +36,9 @@
 #define PEDALOG_VENDOR_ID   0x04d8
 #define PEDALOG_PRODUCT_ID  0x000c
 
-#define RESPONSE_LENGTH     48
+#define V1_RESPONSE_LENGTH  48
+#define V2_RESPONSE_LENGTH  52
+
 #define USB_TIMEOUT         1000
 
 #define READ_DATA_COMMAND   0x43
@@ -277,13 +279,13 @@ static int read_data_internal(pedalog_data *data, usb_dev_handle *handle, struct
 
     r = usb_bulk_write(handle, 1, &cmd, 1, USB_TIMEOUT);
 
-    char result[RESPONSE_LENGTH];
+    char result[V2_RESPONSE_LENGTH];
 
 #ifdef DEBUG
-    printf("  Calling usb_bulk_read, expecting %d bytes response...\n", RESPONSE_LENGTH);
+    printf("  Calling usb_bulk_read, expecting at least %d bytes response, at most %d bytes...\n", V1_RESPONSE_LENGTH, V2_RESPONSE_LENGTH);
 #endif
 
-    r = usb_bulk_read(handle, 0x81, result, RESPONSE_LENGTH, USB_TIMEOUT);
+    r = usb_bulk_read(handle, 0x81, result, V2_RESPONSE_LENGTH, USB_TIMEOUT);
     
 #ifdef DEBUG
     printf("  usb_bulk_read returned %d\n", r);
@@ -301,10 +303,10 @@ static int read_data_internal(pedalog_data *data, usb_dev_handle *handle, struct
         return r;
     }
 
-    if (r != RESPONSE_LENGTH)
+    if (r < V1_RESPONSE_LENGTH)
     {
 #ifdef DEBUG
-        printf("Response length (%d) doesn't match expected length (%d), exiting read_data_internal, returning PEDALOG_ERROR_BAD_RESPONSE\n", r, RESPONSE_LENGTH);
+        printf("Response length (%d) was less than minimum length (%d), exiting read_data_internal, returning PEDALOG_ERROR_BAD_RESPONSE\n", r, V1_RESPONSE_LENGTH);
 #endif
         return PEDALOG_ERROR_BAD_RESPONSE;
     }
