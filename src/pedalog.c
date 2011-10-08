@@ -304,7 +304,7 @@ static int read_data_internal(pedalog_data *data, usb_dev_handle *handle, struct
     if (r != RESPONSE_LENGTH)
     {
 #ifdef DEBUG
-        printf("Response length doesn't match, exiting read_data_internal, returning PEDALOG_ERROR_BAD_RESPONSE\n");
+        printf("Response length (%d) doesn't match expected length (%d), exiting read_data_internal, returning PEDALOG_ERROR_BAD_RESPONSE\n", r, RESPONSE_LENGTH);
 #endif
         return PEDALOG_ERROR_BAD_RESPONSE;
     }
