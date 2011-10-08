@@ -1,3 +1,9 @@
+libpedalog (0.4-1) maverick; urgency=low
+
+  * New upstream version
+
+ -- Dan Haughey <dan@powwow-pedal-power.org.uk>  Tue, 08 Oct 2011 17:17:00 +0100
+
 libpedalog (0.3-1) maverick; urgency=low
 
   * New upstream version
