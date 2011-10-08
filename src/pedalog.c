@@ -84,11 +84,132 @@ static _pedalog_device_internal     device_lookup[PEDALOG_MAX_DEVICES];
 /* The number of Pedalog devices found in the last call to pedalog_find_devices */
 static int                          device_count;
 
+static int send_command(usb_dev_handle *handle, struct usb_device *pedalog, char cmd, char *response, int max_response)
+{
+#ifdef DEBUG
+    printf("Entering send_command...\n");
+#endif
+
+    int r = usb_set_configuration(handle, pedalog->config[0].bConfigurationValue);
+    if (r != 0) {
+#ifdef DEBUG
+        printf("usb_set_configuration returned %d, exiting send_command, returning PEDALOG_ERROR_FAILED_TO_OPEN\n", r);
+#endif
+        return PEDALOG_ERROR_FAILED_TO_OPEN;
+    }
+    
+    int interface = pedalog->config[0].interface[0].altsetting->bInterfaceNumber;
+    
+    r = usb_claim_interface(handle, interface);
+    if (r != 0) {
+        switch (r) {
+            case EBUSY:
+#ifdef DEBUG
+                printf("usb_claim_interface returned %d, exiting send_command, returning PEDALOG_ERROR_DEVICE_BUSY\n", r);
+#endif
+                return PEDALOG_ERROR_DEVICE_BUSY;
+            case ENOMEM:
+#ifdef DEBUG
+                printf("usb_claim_interface returned %d, exiting send_command, returning PEDALOG_ERROR_OUT_OF_MEMORY\n", r);
+#endif
+                return PEDALOG_ERROR_OUT_OF_MEMORY;
+            default:
+#ifdef DEBUG
+                printf("usb_claim_interface returned %d, exiting send_command, returning PEDALOG_ERROR_UNKNOWN\n", r);
+#endif
+                return PEDALOG_ERROR_UNKNOWN;
+        }
+    }
+
+#ifdef DEBUG
+    printf("  Calling usb_bulk_write with command '%x'...\n", cmd);
+#endif
+
+    r = usb_bulk_write(handle, 1, &cmd, 1, USB_TIMEOUT);
+
+#ifdef DEBUG
+    printf("  Calling usb_bulk_read, expecting at most %d bytes...\n", max_response);
+#endif
+
+    r = usb_bulk_read(handle, 0x81, response, max_response, USB_TIMEOUT);
+    
+#ifdef DEBUG
+    printf("  usb_bulk_read returned %d\n", r);
+    
+    printf("  Calling usb_release_interface\n");
+#endif
+
+    usb_release_interface(handle, interface);
+    
+#ifdef DEBUG
+    printf("Exiting send_command, returning %d\n", r);
+#endif
+
+    return r;
+}
+
 /* Reads the unique serial number from a Pedalog. */
 static int read_device_serial(struct usb_device *device)
 {
-    // TODO: implement this once firmware supports it
-    return 1;
+#ifdef DEBUG
+    printf("Entering read_device_serial...\n");
+#endif
+
+#ifdef DEBUG
+    printf("  Calling usb_open...\n");
+#endif
+
+    usb_dev_handle *handle = usb_open(device);
+
+#ifdef DEBUG
+    printf("  usb_open returned handle '%x'\n", handle);
+#endif
+
+    if (handle == 0)
+    {
+#ifdef DEBUG
+        printf("Exiting read_device_serial, returning PEDALOG_ERROR_NO_DEVICE_FOUND\n");
+#endif
+        return PEDALOG_ERROR_NO_DEVICE_FOUND;
+    }
+
+    // Add 1 to MAX_SERIAL_LENGTH to deal with the extra leading byte that is returned
+    char response[MAX_SERIAL_LENGTH + 1];
+
+#ifdef DEBUG
+    printf("  Calling send_command with command '%d', expecting %d bytes response...\n", GET_SERIAL_COMMAND, MAX_SERIAL_LENGTH + 1);
+#endif
+
+    int r = send_command(handle, device, GET_SERIAL_COMMAND, response, MAX_SERIAL_LENGTH + 1);
+
+#ifdef DEBUG
+    printf("  send_command returned %d\n", r);
+
+    printf("  Calling usb_close\n");
+#endif
+    
+    usb_close(handle);
+
+    if (r <= 0)
+    {
+        // No response was returned, or an error - assume this is a V1 Pedalog without a serial and
+        // return 0
+#ifdef DEBUG
+    printf("Bad response given, assuming old firmware, exiting read_device_serial, returning '0'\n");
+#endif
+        return 0;
+    }
+
+    char serial_string[MAX_SERIAL_LENGTH];
+    strncpy(serial_string, response + 1, r - 1);
+
+    int serial = atof(serial_string);
+
+#ifdef DEBUG
+    printf("Exiting read_device_serial, returning %d\n", r);
+#endif
+
+    return serial;
 }
 
 /* Given a pedalog_device structure, finds the corresponding usb_device structure in the lookup table. */
@@ -233,70 +354,6 @@ static int raw_string_to_pedalog_data(char *input, pedalog_data *data)
     data->time = atol(time);
 
     return 1;
-}
-
-static int send_command(usb_dev_handle *handle, struct usb_device *pedalog, char cmd, char *response, int max_response)
-{
-#ifdef DEBUG
-    printf("Entering send_command...\n");
-#endif
-
-    int r = usb_set_configuration(handle, pedalog->config[0].bConfigurationValue);
-    if (r != 0) {
-#ifdef DEBUG
-        printf("usb_set_configuration returned %d, exiting send_command, returning PEDALOG_ERROR_FAILED_TO_OPEN\n", r);
-#endif
-        return PEDALOG_ERROR_FAILED_TO_OPEN;
-    }
-    
-    int interface = pedalog->config[0].interface[0].altsetting->bInterfaceNumber;
-    
-    r = usb_claim_interface(handle, interface);
-    if (r != 0) {
-        switch (r) {
-            case EBUSY:
-#ifdef DEBUG
-                printf("usb_claim_interface returned %d, exiting send_command, returning PEDALOG_ERROR_DEVICE_BUSY\n", r);
-#endif
-                return PEDALOG_ERROR_DEVICE_BUSY;
-            case ENOMEM:
-#ifdef DEBUG
-                printf("usb_claim_interface returned %d, exiting send_command, returning PEDALOG_ERROR_OUT_OF_MEMORY\n", r);
-#endif
-                return PEDALOG_ERROR_OUT_OF_MEMORY;
-            default:
-#ifdef DEBUG
-                printf("usb_claim_interface returned %d, exiting send_command, returning PEDALOG_ERROR_UNKNOWN\n", r);
-#endif
-                return PEDALOG_ERROR_UNKNOWN;
-        }
-    }
-
-#ifdef DEBUG
-    printf("  Calling usb_bulk_write with command '%x'...\n", cmd);
-#endif
-
-    r = usb_bulk_write(handle, 1, &cmd, 1, USB_TIMEOUT);
-
-#ifdef DEBUG
-    printf("  Calling usb_bulk_read, expecting at most %d bytes...\n", max_response);
-#endif
-
-    r = usb_bulk_read(handle, 0x81, response, max_response, USB_TIMEOUT);
-    
-#ifdef DEBUG
-    printf("  usb_bulk_read returned %d\n", r);
-    
-    printf("  Calling usb_release_interface\n");
-#endif
-
-    usb_release_interface(handle, interface);
-    
-#ifdef DEBUG
-    printf("Exiting send_command, returning %d\n", r);
-#endif
-
-    return r;
 }
 
 /* Does the actual work of reading data from the Pedalog device. Returns PEDALOG_OK if successful,
