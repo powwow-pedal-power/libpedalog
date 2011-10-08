@@ -6,7 +6,7 @@ target_link_libraries(pedalog usb)
 
 # The version number.
 set (LIBPEDALOG_VERSION_MAJOR 0)
-set (LIBPEDALOG_VERSION_MINOR 2)
+set (LIBPEDALOG_VERSION_MINOR 4)
 set (LIBPEDALOG_VERSION_PATCH 0)
 
 # Library versioning
