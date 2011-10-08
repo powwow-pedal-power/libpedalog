@@ -21,3 +21,11 @@ install (
 	DIRECTORY	udev/rules/
 	DESTINATION /etc/udev/rules.d
 )
+
+# Create 'dist' target to build source tarball
+set(PROJECT_VERSION "${LIBPEDALOG_VERSION_MAJOR}.${LIBPEDALOG_VERSION_MINOR}")
+set(ARCHIVE_NAME ${CMAKE_PROJECT_NAME}-${PROJECT_VERSION})
+add_custom_target(dist
+    COMMAND git archive --prefix=${ARCHIVE_NAME}/ HEAD
+        | gzip > ${CMAKE_BINARY_DIR}/${ARCHIVE_NAME}.tar.gz
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
