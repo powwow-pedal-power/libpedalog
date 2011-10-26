@@ -125,6 +125,16 @@ static int send_command(usb_dev_handle *handle, struct usb_device *pedalog, char
 #endif
 
     r = usb_bulk_write(handle, 1, &cmd, 1, USB_TIMEOUT);
+    if (r != 1) {
+#ifdef DEBUG
+        printf("  usb_bulk_write returned %d, expected 1, exiting send_command, returning PEDALOG_ERROR_UNKNOWN\n", r);
+#endif
+        return PEDALOG_ERROR_UNKNOWN;
+    }
+
+#ifdef DEBUG
+    printf("  usb_bulk_write returned %d\n", r);
+#endif
 
 #ifdef DEBUG
     printf("  Calling usb_bulk_read, expecting at most %d bytes...\n", max_response);
