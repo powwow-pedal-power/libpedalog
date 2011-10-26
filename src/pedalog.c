@@ -171,7 +171,7 @@ static int read_device_serial(struct usb_device *device)
     usb_dev_handle *handle = usb_open(device);
 
 #ifdef DEBUG
-    printf("  usb_open returned handle '%x'\n", handle);
+    printf("  usb_open returned handle '%x'\n", (unsigned int)handle);
 #endif
 
     if (handle == 0)
@@ -495,7 +495,7 @@ int pedalog_read_data(pedalog_device *device, pedalog_data *data)
 
     handle = usb_open(pedalog);
 #ifdef DEBUG
-    printf("  usb_open returned handle '%x'\n", handle);
+    printf("  usb_open returned handle '%x'\n", (unsigned int)handle);
 #endif
 
     if (handle == 0)
